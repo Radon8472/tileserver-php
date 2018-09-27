@@ -5,28 +5,32 @@
  *
  * We are handling the classes this way due to maintaining PHP 5.2 support.
  */
-class TileServerServer
+class TileServer_Server
 {
     /**
      * Configuration of TileServer [baseUrls, serverTitle]
+     *
      * @var array
      */
     public $config;
 
     /**
      * Datasets stored in file structure
+     *
      * @var array
      */
     public $fileLayer = array();
 
     /**
      * Datasets stored in database
+     *
      * @var array
      */
     public $dbLayer = array();
 
     /**
      * PDO database connection
+     *
      * @var object
      */
     public $db;
@@ -34,7 +38,7 @@ class TileServerServer
     /**
      * Set config
      *
-     * @param TileServerConfiguration $configuration
+     * @param TileServer_Configuration $configuration
      */
     public function __construct($configuration) {
         $this->config = $configuration;
@@ -45,7 +49,7 @@ class TileServerServer
      */
     public function setDatasets() {
         $jsonMetadata = glob('*/metadata.json');
-        $tileMetadata = glob($this->config['dataRoot'] . '*.mbtiles');
+        $tileMetadata = glob($this->config->getDataRoot() . '*.mbtiles');
 
         if ($jsonMetadata) {
             foreach (array_filter($jsonMetadata, 'is_readable') as $mj) {
@@ -495,34 +499,19 @@ class TileServerServer
      */
     public function getHtml() {
         $this->setDatasets();
+
         $maps = array_merge($this->fileLayer, $this->dbLayer);
-        if (isset($this->config['template']) && file_exists($this->config['template'])) {
-            $baseUrls = $this->config['baseUrls'];
-            $serverTitle = $this->config['serverTitle'];
-            include_once $this->config['template'];
+        if ($this->config->hasTemplate() && file_exists($this->config->getTemplate())) {
+            $baseUrls = $this->config->getBaseUrls();
+            $serverTitle = $this->config->getServerTitle();
+            include_once $this->config->getTemplate();
         } else {
-            header('Content-Type: text/html;charset=UTF-8');
-            echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' . $this->config['serverTitle'] . '</title>';
-            echo '<link rel="stylesheet" type="text/css" href="//cdn.klokantech.com/tileviewer/v1/index.css" />
-            <script src="//cdn.klokantech.com/tileviewer/v1/index.js"></script><body>
-            <script>tileserver({index:"' . $this->config['protocol'] . '://' . $this->config['baseUrls'][0] . '/index.json", tilejson:"' . $this->config['protocol'] . '://' . $this->config['baseUrls'][0] . '/%n.json", tms:"' . $this->config['protocol'] . '://' . $this->config['baseUrls'][0] . '/tms", wmts:"' . $this->config['protocol'] . '://' . $this->config['baseUrls'][0] . '/wmts"});</script>
-            <h1>Welcome to ' . $this->config['serverTitle'] . '</h1>
-            <p>This server distributes maps to desktop, web, and mobile applications.</p>
-            <p>The mapping data are available as OpenGIS Web Map Tiling Service (OGC WMTS), OSGEO Tile Map Service (TMS), and popular XYZ urls described with TileJSON metadata.</p>';
-            if (!isset($maps)) {
-                echo '<h3 style="color:darkred;">No maps available yet</h3>
-              <p style="color:darkred; font-style: italic;">
-              Ready to go - just upload some maps into directory:' . getcwd() . '/ on this server.</p>
-              <p>Note: The maps can be a directory with tiles in XYZ format with metadata.json file.<br/>
-              You can easily convert existing geodata (GeoTIFF, ECW, MrSID, etc) to this tile structure with <a href="http://www.maptiler.com">MapTiler Cluster</a> or open-source projects such as <a href="http://www.klokan.cz/projects/gdal2tiles/">GDAL2Tiles</a> or <a href="http://www.maptiler.org/">MapTiler</a> or simply upload any maps in MBTiles format made by <a href="http://www.tilemill.com/">TileMill</a>. Helpful is also the <a href="https://github.com/mapbox/mbutil">mbutil</a> tool. Serving directly from .mbtiles files is supported, but with decreased performance.</p>';
-            } else {
-                echo '<ul>';
-                foreach ($maps as $map) {
-                    echo "<li>" . $map['name'] . '</li>';
-                }
-                echo '</ul>';
-            }
-            echo '</body></html>';
+            TileServer_Renderer::renderHtmlTemplate('HtmlViewer', array(
+                'baseUrl'     => $this->config->getBaseUrls()[0],
+                'protocol'    => $this->config->getProtocol(),
+                'serverTitle' => $this->config->getServerTitle(),
+                'maps'        => $maps,
+            ));
         }
     }
 }

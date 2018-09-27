@@ -149,6 +149,11 @@ class TileServer_Configuration
         return $this;
     }
 
+    public function hasTemplate()
+    {
+        return $this->template !== null;
+    }
+
     /**
      * @return string
      */

@@ -62,7 +62,7 @@ class TileServer_Router
             if (is_string($resolvedHandler) && strpos($resolvedHandler, ':') !== false) {
                 $resolvedClass = explode(':', $resolvedHandler);
                 $resolvedMethod = explode(':', $resolvedHandler);
-                $serverInstance = new $resolvedClass[0]($regex_matches);
+                $serverInstance = new $resolvedClass[0]($this->configuration, $regex_matches);
 
                 call_user_func(array($serverInstance, $resolvedMethod[1]));
 
@@ -70,13 +70,13 @@ class TileServer_Router
             }
 
             if (is_string($resolvedHandler)) {
-                new $resolvedHandler($regex_matches);
+                new $resolvedHandler($this->configuration, $regex_matches);
 
                 return;
             }
 
             if (is_callable($resolvedHandler)) {
-                $resolvedHandler();
+                $resolvedHandler($this->configuration);
             }
 
             return;
@@ -90,11 +90,11 @@ class TileServer_Router
             $kvp = explode('=', $_SERVER['REQUEST_URI']);
             $_GET['callback'] = $kvp[1];
             $params[0] = 'index';
-            $serverInstance = new Json($params);
+            $serverInstance = new TileServer_Json($this->configuration, $params);
             $serverInstance->getJson();
         }
 
-        $serverInstance = new Server;
+        $serverInstance = new TileServer_Server($this->configuration);
         $serverInstance->getHtml();
     }
 
